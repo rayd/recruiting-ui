@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components/macro';
-
+import { useDispatch, useSelector } from 'react-redux';
 import Icon from './Icon';
+import { addBook, removeBook } from '../actions/books';
 
 export const Button = styled.button`
   border: 1px solid #d6216b;
@@ -36,25 +37,39 @@ const TextButton = styled.button`
   }
 `;
 
-export const SaveButton = ({ saved, onSave, onRemove, className }) => {
-  const [state, setState] = useState(saved);
-  return state ? (
+/**
+ * SaveButton component that handles saving and removing books from the user's list
+ * @param {Object} props
+ * @param {Object} props.book - The book object to save/remove
+ * @param {string} props.className - Optional CSS class name
+ * @returns {JSX.Element}
+ */
+export const SaveButton = ({ book, className }) => {
+  const dispatch = useDispatch();
+  const savedBooks = useSelector(state => state.savedBooks);
+  const isSaved = savedBooks.has(book.id);
+
+  const handleSave = () => {
+    dispatch(addBook(book));
+  };
+
+  const handleRemove = () => {
+    dispatch(removeBook(book));
+  };
+
+  return isSaved ? (
     <TextButton
       className={className}
-      onClick={() => {
-        onRemove();
-        setState(false);
-      }}
+      onClick={handleRemove}
+      aria-label="Remove from saved list"
     >
       <Icon icon="check" /> Saved to List
     </TextButton>
   ) : (
     <Button
       className={className}
-      onClick={() => {
-        onSave();
-        setState(true);
-      }}
+      onClick={handleSave}
+      aria-label="Save to list"
     >
       <Icon icon="plus" /> Save to list
     </Button>
@@ -62,8 +77,12 @@ export const SaveButton = ({ saved, onSave, onRemove, className }) => {
 };
 
 SaveButton.propTypes = {
-  saved: PropTypes.bool,
-  onSave: PropTypes.func,
-  onRemove: PropTypes.func,
+  book: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    title: PropTypes.string.isRequired,
+    author: PropTypes.string.isRequired,
+    description: PropTypes.string,
+    image_url: PropTypes.string.isRequired,
+  }).isRequired,
   className: PropTypes.string,
 };
