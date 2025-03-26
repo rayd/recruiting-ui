@@ -1,0 +1,39 @@
+{
+  "extends": "https://cursor.directory/rules/react",
+  "formatOnSave": true,
+  "defaultFormatter": "prettier",
+  "formatters": {
+    "javascript": "prettier",
+    "typescript": "prettier",
+    "jsx": "prettier"
+  },
+  "linters": {
+    "javascript": "eslint",
+    "typescript": "eslint",
+    "jsx": "eslint"
+  },
+  "search": {
+    "exclude": [
+      "**/node_modules/**",
+      "**/build/**",
+      "**/dist/**",
+      "**/.git/**",
+      "**/coverage/**"
+    ]
+  },
+  "editor": {
+    "tabSize": 2,
+    "insertSpaces": true,
+    "rulers": [80],
+    "wordWrap": "off"
+  },
+  "files": {
+    "exclude": {
+      "**/node_modules": true,
+      "**/build": true,
+      "**/dist": true,
+      "**/.git": true,
+      "**/coverage": true
+    }
+  }
+} 

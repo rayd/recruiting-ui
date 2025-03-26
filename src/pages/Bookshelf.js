@@ -1,80 +1,85 @@
-import React, { useState } from 'react';
+import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
-import styled from 'styled-components/macro';
-import { useNavigate, useLocation } from '@reach/router';
+import { useNavigate } from '@reach/router';
 
 import { Button } from 'components/Buttons';
 import Icon from 'components/Icon';
 import Page from 'components/Page';
 import Book from 'components/Book';
-
-const Shelf = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  flex-direction: row;
-  justify-content: flex-start;
-  width: 1080px;
-  margin: 0 auto;
-`;
+import { Shelf } from '../styles/layout';
+import useBookSorting from '../hooks/useBookSorting';
+import useViewMode from '../hooks/useViewMode';
+import { getBookId } from '../utils/bookTransforms';
 
 export default function Bookshelf({ books, actions, saved }) {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [, view] = location.search.match(/view=(grid|list)/) || [];
-  const [sortBy, setSortBy] = useState('title');
+  const view = useViewMode();
+  const { sortedBooks, SorterControl } = useBookSorting(books);
 
-  const Sorter = (
-    <label key="sorter">
-      Sort by&nbsp;
-      <select onChange={e => setSortBy(e.target.value)} value={sortBy}>
-        <option>title</option>
-        <option>author</option>
-      </select>
-    </label>
-  );
+  const handleAddBook = () => navigate('/books/new');
+
+  const handleSaveBook = useCallback((book) => {
+    actions.addBook(book);
+  }, [actions]);
+
+  const handleRemoveBook = useCallback((book) => {
+    const bookId = getBookId(book);
+    const savedBook = saved.find(({ id }) => id === bookId);
+    if (savedBook) {
+      actions.removeBook(savedBook);
+    }
+  }, [actions, saved]);
+
+  const isBookSaved = useCallback((book) => {
+    const bookId = getBookId(book);
+    return saved.some(({ id }) => id === bookId);
+  }, [saved]);
+
   return (
     <Page
       pageTitle="Your Saved Books"
       filters={[
-        <Button onClick={() => navigate('/books/new')} key="add-new">
+        <Button onClick={handleAddBook} key="add-new">
           <Icon icon="plus" /> Add new book
         </Button>,
-        Sorter,
+        SorterControl,
       ]}
     >
-      <Shelf>
-        {books
-          .sort(({ [sortBy]: a }, { [sortBy]: b }) =>
-            a < b ? -1 : a > b ? 1 : 0
-          )
-          .map(book => (
+      {books.length === 0 ? (
+        <p>You haven't saved any books yet. Add some books to get started!</p>
+      ) : (
+        <Shelf width="1080px" margin="0 auto">
+          {sortedBooks.map(book => (
             <Book
               view={view}
               book={book}
-              actions={actions}
-              key={book.primary_isbn13 || book.id}
-              onSave={() => {
-                actions.addBook(book);
-              }}
-              onRemove={() =>
-                actions.removeBook(
-                  saved.find(
-                    ({ id }) => id === (book.primary_isbn13 || book.id)
-                  )
-                )
-              }
-              saved={saved.some(
-                ({ id }) => id === (book.primary_isbn13 || book.id)
-              )}
+              key={getBookId(book)}
+              onSave={handleSaveBook}
+              onRemove={handleRemoveBook}
+              saved={isBookSaved(book)}
             />
           ))}
-      </Shelf>
+        </Shelf>
+      )}
     </Page>
   );
 }
 
 Bookshelf.propTypes = {
-  books: PropTypes.arrayOf(PropTypes.object),
-  actions: PropTypes.objectOf(PropTypes.func),
+  books: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      title: PropTypes.string.isRequired,
+      author: PropTypes.string.isRequired,
+      description: PropTypes.string,
+      image_url: PropTypes.string.isRequired,
+    })
+  ),
+  actions: PropTypes.objectOf(PropTypes.func).isRequired,
   saved: PropTypes.arrayOf(PropTypes.object),
+};
+
+Bookshelf.defaultProps = {
+  books: [],
+  saved: [],
 };

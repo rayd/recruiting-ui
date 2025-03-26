@@ -18,11 +18,10 @@ export default function reducer(state = initialState, action) {
         saved: [...state.saved, action.book],
       };
     case 'book_removed': {
-      const indexToRemove = state.saved.findIndex(
-        ({ id }) => id === action.book.id
-      );
-      state.saved.splice(indexToRemove, 1);
-      return state;
+      return {
+        ...state,
+        saved: state.saved.filter(({ id }) => id !== action.book.id)
+      };
     }
 
     default:

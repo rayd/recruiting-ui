@@ -1,42 +1,40 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate, useLocation, useParams } from '@reach/router';
-import styled from 'styled-components/macro';
+import { useNavigate, useParams } from '@reach/router';
+import { Shelf } from '../styles/layout';
 import Page from 'components/Page';
 import Book from 'components/Book';
-
-const Shelf = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  flex-direction: row;
-  justify-content: flex-start;
-`;
+import useBookSorting from '../hooks/useBookSorting';
+import useViewMode from '../hooks/useViewMode';
+import { transformNYTBook } from '../utils/bookTransforms';
 
 export default function Overview({ books, actions, saved }) {
   const navigate = useNavigate();
-  const location = useLocation();
   const { listName } = useParams();
-  const [, view] = location.search.match(/view=(grid|list)/) || [];
-
+  const view = useViewMode();
   const [state, setState] = useState('loading');
   const [selected, setSelected] = useState(listName || 'hardcover-fiction');
   const [lists, setLists] = useState([]);
-  const [sortBy, setSortBy] = useState('title');
+  
+  const { sortedBooks, SorterControl } = useBookSorting(books);
 
+  // Fetch list of book categories
   useEffect(() => {
     const API_KEY = process.env.REACT_APP_API_KEY || '';
     fetch(
       `https://api.nytimes.com/svc/books/v3/lists/names.json?api-key=${API_KEY}`
     )
       .then(resp => resp.json())
-      .then(({ results }) => setLists(results));
+      .then(({ results }) => setLists(results))
+      .catch(error => console.error('Error fetching book lists:', error));
   }, []);
 
+  // Fetch books for selected category
   useEffect(() => {
     setState('loading');
-    actions.getBooks(selected).then(() => {
-      setState('done');
-    });
+    actions.getBooks(selected)
+      .then(() => setState('done'))
+      .catch(() => setState('error'));
   }, [actions, selected]);
 
   const handleChange = e => {
@@ -44,15 +42,21 @@ export default function Overview({ books, actions, saved }) {
     setSelected(value);
     navigate(`/${value}`, { replace: true });
   };
-  const Sorter = (
-    <label key="sorter">
-      Sort by&nbsp;
-      <select onChange={e => setSortBy(e.target.value)} value={sortBy}>
-        <option>title</option>
-        <option>author</option>
-      </select>
-    </label>
-  );
+
+  const handleSaveBook = useCallback((book) => {
+    actions.saveBookFromList(book);
+  }, [actions]);
+
+  const handleRemoveBook = useCallback((book) => {
+    const savedBook = saved.find(({ id }) => id === book.primary_isbn13);
+    if (savedBook) {
+      actions.removeBook(savedBook);
+    }
+  }, [actions, saved]);
+
+  const isBookSaved = useCallback((bookId) => {
+    return saved.some(({ id }) => id === bookId);
+  }, [saved]);
 
   return (
     <Page
@@ -65,38 +69,26 @@ export default function Overview({ books, actions, saved }) {
             </option>
           ))}
         </select>,
-        Sorter,
+        SorterControl,
       ]}
     >
+      {state === 'loading' && <p>Loading books...</p>}
+      {state === 'error' && <p>Error loading books. Please try again later.</p>}
       {state === 'done' && (
         <Shelf>
-          {books
-            .sort(({ [sortBy]: a }, { [sortBy]: b }) =>
-              a < b ? -1 : a > b ? 1 : 0
-            )
-            .map(book => (
+          {sortedBooks.map(book => {
+            const transformedBook = transformNYTBook(book);
+            return (
               <Book
                 view={view}
-                book={{
-                  id: book.primary_isbn13,
-                  title: book.title,
-                  image_url: book.book_image,
-                  description: book.description,
-                  author: book.author,
-                }}
-                actions={actions}
-                key={book.primary_isbn13}
-                onSave={() => {
-                  actions.saveBookFromList(book);
-                }}
-                onRemove={() =>
-                  actions.removeBook(
-                    saved.find(({ id }) => id === book.primary_isbn13)
-                  )
-                }
-                saved={saved.some(({ id }) => id === book.primary_isbn13)}
+                book={transformedBook}
+                key={transformedBook.id}
+                onSave={handleSaveBook}
+                onRemove={handleRemoveBook}
+                saved={isBookSaved(transformedBook.id)}
               />
-            ))}
+            );
+          })}
         </Shelf>
       )}
     </Page>
@@ -104,7 +96,12 @@ export default function Overview({ books, actions, saved }) {
 }
 
 Overview.propTypes = {
-  actions: PropTypes.objectOf(PropTypes.func),
+  actions: PropTypes.objectOf(PropTypes.func).isRequired,
   books: PropTypes.arrayOf(PropTypes.object),
   saved: PropTypes.arrayOf(PropTypes.object),
+};
+
+Overview.defaultProps = {
+  books: [],
+  saved: [],
 };
