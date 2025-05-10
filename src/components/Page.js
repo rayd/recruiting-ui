@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components/macro';
-import { Link } from '@reach/router';
+import { Link, useSearchParams } from 'react-router-dom';
 import Icon from './Icon';
 
 const Wrapper = styled.div`
@@ -64,7 +64,9 @@ export const Content = styled.div`
 `;
 
 export default function Page({ className, pageTitle, filters, children }) {
-  const [, view] = window.location.search.match(/view=(grid|list)/) || [];
+  const [searchParams] = useSearchParams();
+  const view = searchParams.get('view') || 'grid';
+
   return (
     <Wrapper className={className}>
       <Headline>{pageTitle ? <h1>{pageTitle}</h1> : ''}</Headline>

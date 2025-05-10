@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components/macro';
-import { useNavigate, useLocation } from '@reach/router';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Button } from 'components/Buttons';
 import Icon from 'components/Icon';
@@ -19,8 +19,8 @@ const Shelf = styled.div`
 
 export default function Bookshelf({ books, actions, saved }) {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [, view] = location.search.match(/view=(grid|list)/) || [];
+  const [searchParams] = useSearchParams();
+  const view = searchParams.get('view') || 'grid';
   const [sortBy, setSortBy] = useState('title');
 
   const Sorter = (
@@ -32,6 +32,7 @@ export default function Bookshelf({ books, actions, saved }) {
       </select>
     </label>
   );
+
   return (
     <Page
       pageTitle="Your Saved Books"
@@ -42,39 +43,65 @@ export default function Bookshelf({ books, actions, saved }) {
         Sorter,
       ]}
     >
-      <Shelf>
-        {books
-          .sort(({ [sortBy]: a }, { [sortBy]: b }) =>
-            a < b ? -1 : a > b ? 1 : 0
-          )
-          .map(book => (
-            <Book
-              view={view}
-              book={book}
-              actions={actions}
-              key={book.primary_isbn13 || book.id}
-              onSave={() => {
-                actions.addBook(book);
-              }}
-              onRemove={() =>
-                actions.removeBook(
-                  saved.find(
-                    ({ id }) => id === (book.primary_isbn13 || book.id)
+      {books.length === 0 ? (
+        <p>
+          You haven&apos;t saved any books yet. Add some books to get started!
+        </p>
+      ) : (
+        <Shelf>
+          {books
+            .sort(({ [sortBy]: a }, { [sortBy]: b }) =>
+              a < b ? -1 : a > b ? 1 : 0
+            )
+            .map(book => (
+              <Book
+                view={view}
+                book={book}
+                key={book.primary_isbn13 || book.id}
+                onSave={() => {
+                  actions.addBook(book);
+                }}
+                onRemove={() =>
+                  actions.removeBook(
+                    saved.find(
+                      ({ id }) => id === (book.primary_isbn13 || book.id)
+                    )
                   )
-                )
-              }
-              saved={saved.some(
-                ({ id }) => id === (book.primary_isbn13 || book.id)
-              )}
-            />
-          ))}
-      </Shelf>
+                }
+                saved={saved.some(
+                  ({ id }) => id === (book.primary_isbn13 || book.id)
+                )}
+              />
+            ))}
+        </Shelf>
+      )}
     </Page>
   );
 }
 
 Bookshelf.propTypes = {
-  books: PropTypes.arrayOf(PropTypes.object),
-  actions: PropTypes.objectOf(PropTypes.func),
-  saved: PropTypes.arrayOf(PropTypes.object),
+  books: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string,
+      primary_isbn13: PropTypes.string,
+      title: PropTypes.string.isRequired,
+      author: PropTypes.string.isRequired,
+      description: PropTypes.string,
+      image_url: PropTypes.string.isRequired,
+    })
+  ),
+  actions: PropTypes.shape({
+    addBook: PropTypes.func.isRequired,
+    removeBook: PropTypes.func.isRequired,
+  }).isRequired,
+  saved: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+    })
+  ),
+};
+
+Bookshelf.defaultProps = {
+  books: [],
+  saved: [],
 };

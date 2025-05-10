@@ -1,7 +1,6 @@
 module.exports = {
   extends: [
     'react-app',
-    'react-app/jest',
     'airbnb',
     'airbnb/hooks',
     'plugin:jest/recommended',

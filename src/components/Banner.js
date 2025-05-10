@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components/macro';
-import { Link, navigate } from '@reach/router';
+import { Link, useNavigate } from 'react-router-dom';
 import Icon from './Icon';
 
 const Brandmark = styled(Icon).attrs(() => ({ icon: 'book-open' }))`
@@ -37,13 +37,15 @@ const BannerWrapper = styled.header`
 `;
 
 export default function Banner() {
+  const navigate = useNavigate();
+
   return (
     <BannerWrapper>
       <Logo onClick={() => navigate('/')}>
         <Brandmark />
         Bookcues
       </Logo>
-      <StyledLink to="saved">Saved Books</StyledLink>
+      <StyledLink to="/saved">Saved Books</StyledLink>
     </BannerWrapper>
   );
 }

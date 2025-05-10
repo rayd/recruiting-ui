@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate, useLocation, useParams } from '@reach/router';
+import {
+  useNavigate,
+  useLocation,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import styled from 'styled-components/macro';
 import Page from 'components/Page';
 import Book from 'components/Book';
@@ -16,11 +21,13 @@ export default function Overview({ books, actions, saved }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { listName } = useParams();
-  const [, view] = location.search.match(/view=(grid|list)/) || [];
+  const [searchParams] = useSearchParams();
+  const view = searchParams.get('view') || 'grid';
 
   const [state, setState] = useState('loading');
   const [selected, setSelected] = useState(listName || 'hardcover-fiction');
   const [lists, setLists] = useState([]);
+  const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState('title');
 
   useEffect(() => {
@@ -29,21 +36,36 @@ export default function Overview({ books, actions, saved }) {
       `https://api.nytimes.com/svc/books/v3/lists/names.json?api-key=${API_KEY}`
     )
       .then(resp => resp.json())
-      .then(({ results }) => setLists(results));
+      .then(({ results }) => setLists(results))
+      .catch(() => {
+        setError('Error fetching book lists');
+      });
   }, []);
 
   useEffect(() => {
     setState('loading');
-    actions.getBooks(selected).then(() => {
-      setState('done');
-    });
+    actions
+      .getBooks(selected)
+      .then(() => setState('done'))
+      .catch(() => {
+        setState('error');
+        setError('Error loading books');
+      });
   }, [actions, selected]);
+
+  // If listName from URL params changes, update selected state
+  useEffect(() => {
+    if (listName && listName !== selected) {
+      setSelected(listName);
+    }
+  }, [listName, selected]);
 
   const handleChange = e => {
     const { value } = e.target;
     setSelected(value);
-    navigate(`/${value}`, { replace: true });
+    navigate(`/${value}${location.search}`, { replace: true });
   };
+
   const Sorter = (
     <label key="sorter">
       Sort by&nbsp;
@@ -68,6 +90,8 @@ export default function Overview({ books, actions, saved }) {
         Sorter,
       ]}
     >
+      {state === 'loading' && <p>Loading books...</p>}
+      {error && <p>{error}</p>}
       {state === 'done' && (
         <Shelf>
           {books
@@ -84,7 +108,6 @@ export default function Overview({ books, actions, saved }) {
                   description: book.description,
                   author: book.author,
                 }}
-                actions={actions}
                 key={book.primary_isbn13}
                 onSave={() => {
                   actions.saveBookFromList(book);
@@ -104,7 +127,28 @@ export default function Overview({ books, actions, saved }) {
 }
 
 Overview.propTypes = {
-  actions: PropTypes.objectOf(PropTypes.func),
-  books: PropTypes.arrayOf(PropTypes.object),
-  saved: PropTypes.arrayOf(PropTypes.object),
+  actions: PropTypes.shape({
+    getBooks: PropTypes.func.isRequired,
+    saveBookFromList: PropTypes.func.isRequired,
+    removeBook: PropTypes.func.isRequired,
+  }).isRequired,
+  books: PropTypes.arrayOf(
+    PropTypes.shape({
+      primary_isbn13: PropTypes.string,
+      title: PropTypes.string,
+      author: PropTypes.string,
+      description: PropTypes.string,
+      book_image: PropTypes.string,
+    })
+  ),
+  saved: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+    })
+  ),
+};
+
+Overview.defaultProps = {
+  books: [],
+  saved: [],
 };

@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components/macro';
+import { useParams } from 'react-router-dom';
 
 import Page from 'components/Page';
 import Icon from 'components/Icon';
@@ -65,11 +66,13 @@ const StyledSaveButton = styled(SaveButton)`
   margin-top: ${({ saved }) => (saved ? '28.5px' : '0')};
 `;
 
-export default function BookDetails({ books, bookId, actions, saved }) {
+export default function BookDetails({ books = [], actions, saved = [] }) {
+  const { bookId } = useParams();
+
   let book = saved.find(({ id }) => id === bookId);
   const isSaved = !!book;
 
-  if (books) {
+  if (books && books.length > 0) {
     const fullBook = books.find(({ primary_isbn13: id }) => id === bookId);
 
     if (!book && fullBook) {
@@ -137,8 +140,34 @@ export default function BookDetails({ books, bookId, actions, saved }) {
 }
 
 BookDetails.propTypes = {
-  books: PropTypes.arrayOf(PropTypes.object),
-  bookId: PropTypes.string,
-  actions: PropTypes.objectOf(PropTypes.func),
-  saved: PropTypes.arrayOf(PropTypes.object),
+  books: PropTypes.arrayOf(
+    PropTypes.shape({
+      primary_isbn13: PropTypes.string,
+      title: PropTypes.string,
+      author: PropTypes.string,
+      description: PropTypes.string,
+      book_image: PropTypes.string,
+      publisher: PropTypes.string,
+      rank: PropTypes.number,
+      weeks_on_list: PropTypes.number,
+    })
+  ),
+  actions: PropTypes.shape({
+    saveBookFromList: PropTypes.func.isRequired,
+    removeBook: PropTypes.func.isRequired,
+  }).isRequired,
+  saved: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      title: PropTypes.string.isRequired,
+      author: PropTypes.string.isRequired,
+      description: PropTypes.string,
+      image_url: PropTypes.string,
+    })
+  ),
+};
+
+BookDetails.defaultProps = {
+  books: [],
+  saved: [],
 };

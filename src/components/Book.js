@@ -1,8 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components/macro';
-
-import { Link } from '@reach/router';
+import { Link } from 'react-router-dom';
 import { SaveButton } from './Buttons';
 
 const Anchor = styled(Link)`
@@ -89,7 +88,7 @@ const Description = styled.p`
 
 export default function Book({ book, onSave, onRemove, saved, view }) {
   return (
-    <Wrapper key={book.id} view={view}>
+    <Wrapper key={book.id} view={view} data-testid="book-component">
       <Cover>
         <Anchor to={`/books/${book.id}`}>
           <img src={book.image_url} alt={book.title} />
@@ -101,16 +100,31 @@ export default function Book({ book, onSave, onRemove, saved, view }) {
         </Title>
         <Author>{book.author}</Author>
         {view === 'list' && <Description>{book.description}</Description>}
-        <SaveButton onSave={onSave} onRemove={onRemove} saved={saved} />
+        <SaveButton
+          onSave={() => onSave(book)}
+          onRemove={() => onRemove(book)}
+          saved={saved}
+        />
       </Details>
     </Wrapper>
   );
 }
 
 Book.propTypes = {
-  book: PropTypes.objectOf(PropTypes.string),
+  book: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    title: PropTypes.string.isRequired,
+    author: PropTypes.string.isRequired,
+    description: PropTypes.string,
+    image_url: PropTypes.string.isRequired,
+  }).isRequired,
   saved: PropTypes.bool,
-  onSave: PropTypes.func,
-  onRemove: PropTypes.func,
-  view: PropTypes.string,
+  onSave: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  view: PropTypes.oneOf(['grid', 'list']),
+};
+
+Book.defaultProps = {
+  saved: false,
+  view: 'grid',
 };

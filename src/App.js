@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Router } from '@reach/router';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
@@ -18,24 +18,46 @@ import './App.css';
 export function App(props) {
   const { actions, saved } = props;
   return (
-    <>
+    <BrowserRouter>
       <Banner />
-      <Router>
-        <Overview {...props} path="/*listName" />
-        <BookDetails {...props} path="books/:bookId" />
-
-        <Bookshelf books={saved} actions={actions} saved={saved} path="saved" />
-        <BookDetails actions={actions} books={saved} path="saved/:bookId" />
-
-        <AddBook actions={actions} path="books/new" />
-      </Router>
-    </>
+      <Routes>
+        <Route path="/" element={<Overview {...props} />} />
+        <Route path="/:listName" element={<Overview {...props} />} />
+        <Route path="/books/new" element={<AddBook actions={actions} />} />
+        <Route path="/books/:bookId" element={<BookDetails {...props} />} />
+        <Route
+          path="/saved"
+          element={<Bookshelf books={saved} actions={actions} saved={saved} />}
+        />
+        <Route
+          path="/saved/:bookId"
+          element={<BookDetails actions={actions} books={saved} />}
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
 App.propTypes = {
-  actions: PropTypes.objectOf(PropTypes.func),
-  saved: PropTypes.arrayOf(PropTypes.object),
+  actions: PropTypes.shape({
+    getBooks: PropTypes.func.isRequired,
+    saveBookFromList: PropTypes.func.isRequired,
+    addBook: PropTypes.func.isRequired,
+    removeBook: PropTypes.func.isRequired,
+  }).isRequired,
+  saved: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      title: PropTypes.string.isRequired,
+      author: PropTypes.string.isRequired,
+      description: PropTypes.string,
+      image_url: PropTypes.string.isRequired,
+    })
+  ),
+};
+
+App.defaultProps = {
+  saved: [],
 };
 
 export default connect(

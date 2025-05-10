@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components/macro';
-import { useNavigate } from '@reach/router';
+import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 
 import Page, { Content } from 'components/Page';
@@ -22,10 +22,10 @@ const Button = styled.button`
 `;
 
 const ErrorMessage = styled.div`
-  color #d6216b;
-margin-bottom: 1em;
-font-size: 14px;
-margin-top: -0.75em;
+  color: #d6216b;
+  margin-bottom: 1em;
+  font-size: 14px;
+  margin-top: -0.75em;
 `;
 
 const StyledForm = styled.form`
@@ -94,6 +94,7 @@ export default function AddBook({ actions }) {
     id: uuidv4(),
   });
   const [errors, setErrors] = useState({});
+
   const handleChange = e =>
     setValues({ ...values, [e.target.name]: e.target.value });
 
@@ -172,4 +173,6 @@ export default function AddBook({ actions }) {
   );
 }
 
-AddBook.propTypes = { actions: PropTypes.objectOf(PropTypes.func) };
+AddBook.propTypes = {
+  actions: PropTypes.objectOf(PropTypes.func).isRequired,
+};
